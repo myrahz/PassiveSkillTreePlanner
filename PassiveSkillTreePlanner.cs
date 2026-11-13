@@ -163,6 +163,20 @@ public class PassiveSkillTreePlanner : BaseSettingsPlugin<PassiveSkillTreePlanne
         }
     }
 
+    // After the editor saves a build, refresh the character/atlas panels if they use it,
+    // without resetting the currently active tree (node ids / last selected url).
+    private void RefreshLoadedBuildData(string buildName)
+    {
+        if (string.IsNullOrWhiteSpace(buildName))
+            return;
+
+        if (string.Equals(Settings.SelectedAtlasBuild, buildName, StringComparison.Ordinal))
+            _selectedAtlasBuildData = TreeConfig.LoadBuild(SkillTreeUrlFilesDir, buildName) ?? new TreeConfig.SkillTreeData();
+
+        if (string.Equals(Settings.SelectedCharacterBuild, buildName, StringComparison.Ordinal))
+            _selectedCharacterBuildData = TreeConfig.LoadBuild(SkillTreeUrlFilesDir, buildName) ?? new TreeConfig.SkillTreeData();
+    }
+
     private void LoadEditBuild(string buildName)
     {
         if (string.IsNullOrWhiteSpace(buildName))
@@ -781,6 +795,7 @@ public class PassiveSkillTreePlanner : BaseSettingsPlugin<PassiveSkillTreePlanne
             buildData.Modified = false;
             TreeConfig.SaveSettingFile(Path.Join(SkillTreeUrlFilesDir, selectedBuildName), buildData);
             ReloadBuildList();
+            RefreshLoadedBuildData(selectedBuildName);
         }
 
         if (buildData.Modified)
