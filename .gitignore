@@ -289,3 +289,5 @@ config.ini
 GitUpdateConfig.txt
 
 /Builds/
+
+Errors.txt
