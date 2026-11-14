@@ -65,10 +65,18 @@ public class PassiveSkillTreePlanner : BaseSettingsPlugin<PassiveSkillTreePlanne
     // RANGER
     45035, 39821,
 
-    
-    // ATLAS STARTER
-    63311, 42692 , 64048, 55117, 44775
 };
+
+    // Hidden root node of the atlas tree. Its direct neighbours are the atlas starter nodes,
+    // so they are read from the tree data instead of being hardcoded (the layout changes between leagues).
+    private const ushort AtlasRootNodeId = 29045;
+
+    private static IReadOnlySet<ushort> GetStarterNodeIds(PoESkillTreeJsonDecoder treeData)
+    {
+        if (treeData.SkillNodes.TryGetValue(AtlasRootNodeId, out var root) && root?.linkedNodes is { Count: > 0 })
+            return root.linkedNodes.ToHashSet();
+        return DefaultStartNodeIds;
+    }
     //List of nodes decoded from URL
     private HashSet<ushort> _characterUrlNodeIds = new HashSet<ushort>();
     private HashSet<ushort> _atlasUrlNodeIds = new HashSet<ushort>();
@@ -309,9 +317,10 @@ public class PassiveSkillTreePlanner : BaseSettingsPlugin<PassiveSkillTreePlanne
         ushort bestStarter = 0;
         int bestDepth = int.MaxValue;
 
+        var starterIds = GetStarterNodeIds(treeData);
         foreach (var id in missingNodes)
         {
-            if (!DefaultStartNodeIds.Contains(id))
+            if (!starterIds.Contains(id))
                 continue;
 
             // Depth is computed within the missing graph
@@ -338,7 +347,7 @@ public class PassiveSkillTreePlanner : BaseSettingsPlugin<PassiveSkillTreePlanne
             if (id == 0) /// character node default or smth
                 continue;
 
-            if (id == 29045) /// atlas node default or smth
+            if (id == AtlasRootNodeId) /// hidden atlas root node
                 continue;
 
             if (!treeData.SkillNodes.TryGetValue(id, out var node) || node == null)
@@ -927,8 +936,8 @@ public class PassiveSkillTreePlanner : BaseSettingsPlugin<PassiveSkillTreePlanne
         var canvas = treePanel.CanvasElement;
         var baseOffset = new Vector2(canvas.Center.X, canvas.Center.Y);
 
-        DrawTreeOverlay(allocatedNodeIds, targetNodeIds, treeData, canvas.Scale, baseOffset, type);
-        DrawTreeEditOverlay(treeData, canvas.Scale, baseOffset);
+        DrawTreeOverlay(allocatedNodeIds, targetNodeIds, treeData, canvas.EffectiveScale, baseOffset, type);
+        DrawTreeEditOverlay(treeData, canvas.EffectiveScale, baseOffset);
     }
     private enum ConnectionType
     {
@@ -1469,7 +1478,7 @@ public class PassiveSkillTreePlanner : BaseSettingsPlugin<PassiveSkillTreePlanne
                 {
                     var canvas = panel.CanvasElement;
                     var baseOffset = new Vector2(canvas.Center.X, canvas.Center.Y);
-                    var clickPos = baseOffset + jsonNode.DrawPosition * canvas.Scale;
+                    var clickPos = baseOffset + jsonNode.DrawPosition * canvas.EffectiveScale;
                     var isMastery = jsonNode.bMastery;
 
                     if (clickPos.X < windowRect.Left || clickPos.X > windowRect.Right ||
